@@ -13,7 +13,7 @@ from dqn_agent import DQNAgent
 import torch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def train(dqn_agent, max_train_episodes, learn_start, update_frequency, results_basepath):
+def train(dqn_agent, max_train_episodes, learn_start, update_frequency, results_basepath, batchsize):
 	scores = []
 	epsilon = []
 	step_cnt = 0
@@ -37,7 +37,7 @@ def train(dqn_agent, max_train_episodes, learn_start, update_frequency, results_
 			if step_cnt == learn_start:
 				print('Init complete. Starting learning now ...')
 			if step_cnt > learn_start:
-				dqn_agent.learn(batch_size=64)
+				dqn_agent.learn(batchsize)
 				if step_cnt % update_frequency == 0:
 					dqn_agent.update_target_net()
 			state = next_state
@@ -48,10 +48,10 @@ def train(dqn_agent, max_train_episodes, learn_start, update_frequency, results_
 			epsilon.append(dqn_agent.epsilon)
 			dqn_agent.update_epsilon()
 			scores.append(ep_score)
-			current_avg_score = np.mean(scores[-101:-1])
-			ep = len(scores)
+			current_avg_score = np.mean(scores[-100:]) # get average of last 100 scores
+			ep_cnt = len(scores)
 
-			print('Ep: {}, Steps: {}, Score: {}, Avg score: {}; {}'.format(ep, step_cnt, ep_score, current_avg_score, dqn_agent.epsilon))
+			print('Ep: {}, Steps: {}, Score: {}, Avg score: {}; {}'.format(ep_cnt, step_cnt, ep_score, current_avg_score, dqn_agent.epsilon))
 		
 			if current_avg_score >= best_score:
 				dqn_agent.save_models('{}/policy_model_best'.format(results_basepath), '{}/target_model_best'.format(results_basepath))
@@ -131,7 +131,7 @@ if __name__ ==  '__main__':
 								eps_decay=args.eps_decay,
 								memory_capacity=args.memory_capacity)
 
-		train(dqn_agent, args.max_train_episodes, args.learn_start, args.update_frequency, args.results_folder)
+		train(dqn_agent, args.max_train_episodes, args.learn_start, args.update_frequency, args.results_folder, args.batchsize)
 		env.close()
 	
 	else:

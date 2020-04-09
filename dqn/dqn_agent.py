@@ -100,15 +100,15 @@ class DQNAgent:
 		return torch.argmax(action).item()
 
 
-	def learn(self, batch_size):
+	def learn(self, batchsize):
 		"""
 		Function that performs the action learning in the agent by updating the weights in the required direction
 		"""
 
 		# select n samples picked uniformly at random from the experience replay memory, such that n=batchsize
-		if len(self.memory) < batch_size:
+		if len(self.memory) < batchsize:
 			return
-		states, actions, next_states, rewards, dones = self.memory.sample(batch_size, self.device)
+		states, actions, next_states, rewards, dones = self.memory.sample(batchsize, self.device)
 
 		# get q values of the actions that were taken, i.e calculate qpred; actions has to be explicitly reshaped to nx1-vector
 		q_pred = self.policy_net.forward(states).gather(1, actions.view(-1, 1)) 
