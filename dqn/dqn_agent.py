@@ -1,3 +1,7 @@
+"""
+Script that contains details about the architecture of the neural network and the learning methods used by the DQN agent
+"""
+
 import random
 import numpy as np
 
@@ -9,6 +13,9 @@ import torch.nn.functional as F
 from replay_memory import ReplayMemory
 
 class DQNNet(nn.Module):
+	"""
+	Class that defines the architecture of the neural network of the DQN agent
+	"""
 	def __init__(self, input_size, output_size):
 		super(DQNNet, self).__init__()
 		self.dense1 = nn.Linear(input_size, 256)
@@ -16,7 +23,6 @@ class DQNNet(nn.Module):
 		self.dense3 = nn.Linear(256, output_size)
 
 		self.optimizer = optim.Adam(self.parameters())
-		self.loss = nn.MSELoss()
 
 	def forward(self, x):
 		x = F.relu(self.dense1(x))
@@ -25,92 +31,113 @@ class DQNNet(nn.Module):
 		return x
 
 	def save_model(self, filename):
+		"""
+		Function to save model parameters
+		"""
 		torch.save(self.state_dict(), filename)
 
 	def load_model(self, filename):
+		"""
+		Function to load model parameters
+		"""
 		self.load_state_dict(torch.load(filename))
 
 
 class DQNAgent:
-	def __init__(self, device, state_size, action_size, discount=0.99, eps_max=1, eps_min=0.01, eps_decay=0.995):
+	"""
+	Class that defines the functions required for training the DQN agent
+	"""
+	def __init__(self, device, state_size, action_size, discount=0.99, eps_max=1.0, eps_min=0.01, eps_decay=0.995, memory_capacity=5000):
 		self.device = device
 
+		# for epsilon-greedy exploration strategy
 		self.epsilon = eps_max
 		self.epsilon_min = eps_min
 		self.epsilon_decay = eps_decay
 
+		# for defining how far-sighted or myopic the agent should be
 		self.discount = discount
+
+		# details about the state vector recieved from the environment and the actions that the agent is allowed to perform
 		self.state_size = state_size
 		self.action_size = action_size
 
+		# building the policy and target Q-networks for the agent, such that the target Q-network is kept frozen to avoid the training instability issues
 		self.policy_net = DQNNet(self.state_size, self.action_size).to(self.device)
 		self.target_net = DQNNet(self.state_size, self.action_size).to(self.device)
 		self.target_net.eval()
 
-		self.memory = ReplayMemory(capacity=5000)
+		# building the experience replay memory used to avoid training instability issues
+		self.memory = ReplayMemory(capacity=memory_capacity)
+
 
 	def update_target_net(self):
+		"""
+		Copies the current weights from the policy Q-network into the frozen target Q-network
+		"""
 		print('Updating target network...')
 		self.target_net.load_state_dict(self.policy_net.state_dict())
 
+
 	def update_epsilon(self):
+		"""
+		Used for reducing the epsilon value to allow for annealing with epsilon-greedy exploration strategy
+		"""
 		self.epsilon = max(self.epsilon_min, self.epsilon*self.epsilon_decay)
 
-	def random_exploration(self):
-		return random.randrange(self.action_size)
 
-	def select_action(self, state, explore=True):
-		#self.eps = self.eps*self.eps_decay if self.eps > self.eps_min else self.eps_min
-		#self.eps = max(self.eps_min, self.eps*self.eps_decay)
-
-		if explore and random.random() <= self.epsilon:
-			#print('In explore')
-			return self.random_exploration()
-			#return random.randrange(self.action_size)
-		#print('Exploiting...')
+	def select_action(self, state):
+		"""
+		Uses epsilon-greedy exploration such that, if the randomly generated number is less than epsilon then the agent performs random action, else the agent executes the action suggested by the policy Q-network
+		"""
+		if random.random() <= self.epsilon:
+			return random.randrange(self.action_size)
 		state = torch.tensor([state], dtype=torch.float32).to(self.device)
-		#print('state: ', state)
+
+		# pick the action with maximum Q-value as per the policy Q-network
 		with torch.no_grad():
 			action = self.policy_net.forward(state)
-		#print('act: ', action)
-		#print(action, torch.argmax(action), torch.argmax(action).item())
 		return torch.argmax(action).item()
 
+
 	def learn(self, batch_size):
+		"""
+		Function that performs the action learning in the agent by updating the weights in the required direction
+		"""
+
+		# select n samples picked uniformly at random from the experience replay memory, such that n=batchsize
 		if len(self.memory) < batch_size:
 			return
-
 		states, actions, next_states, rewards, dones = self.memory.sample(batch_size, self.device)
-		#print('Dones: ', dones)
-		#print(states.shape, actions.shape)
-		q_pred = self.policy_net.forward(states).gather(1, actions.view(-1, 1)) # get q values of the actions that were taken; actions has to be explicitly reshaped to nx1 vector
-		#print('Q pred: ', q_pred)
 
-		q_target = self.target_net.forward(next_states).max(dim=1).values
-		#print('Q target: ', q_target)
-		#print('dones: ', dones)
-		#print('qt of dones: ', q_target[dones])
-		#print(type(q_target), type(dones))
+		# get q values of the actions that were taken, i.e calculate qpred; actions has to be explicitly reshaped to nx1-vector
+		q_pred = self.policy_net.forward(states).gather(1, actions.view(-1, 1)) 
 		
-		q_target[dones] = 0.0
-		#print('Q target dones: ', q_target)
+		#calculate target q-values, such that yj = rj + q(s', a'), but if current state is a terminal state, then yj = rj
+		q_target = self.target_net.forward(next_states).max(dim=1).values
+		q_target[dones] = 0.0 # setting Q(s',a') to 0 when the current state is a terminal state
 		y_j = rewards + (self.discount*q_target)
 		y_j = y_j.view(-1, 1)
-		#print('Yj: ', y_j, rewards)
-
+		
+		# calculate the loss as the mean-squared error of yj and qpred and the corresponding gradients to update the weights of the network
 		self.policy_net.optimizer.zero_grad() # manually clear out gradient coz backward() function accumulates gradients and you dont want them to mix up between minibatches
-		#print('shape: ', y_j.shape, q_pred.shape)
-		loss = self.policy_net.loss(y_j, q_pred)
+		loss = F.mse_loss(y_j, q_pred).mean()
 		loss.backward() # calculates the gradients
 		self.policy_net.optimizer.step() # updates the values of the weights
 		
 
 	def save_models(self, policy_net_filename, target_net_filename):
+		"""
+		Function to save the parameters of the policy and target models
+		"""
 		print('Saving model...')
 		self.policy_net.save_model(policy_net_filename)
 		self.target_net.save_model(target_net_filename)
 
 	def load_models(self, policy_net_filename, target_net_filename):
+		"""
+		Function to load the parameters of the policy and target models
+		"""
 		print('Loading model...')
 		self.policy_net.load_model(policy_net_filename)
 		self.target_net.load_model(target_net_filename)
