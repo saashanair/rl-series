@@ -64,8 +64,10 @@ class Worker(mp.Process):
         self.train_mode = train_mode
 
         self.global_network = global_network
-        #self.global_optimizer = global_optimizer
-        self.global_optimizer = optim.Adam(self.global_network.parameters(), lr=lr)
+        self.global_optimizer = global_optimizer
+        if self.global_optimizer is None:
+            self.global_optimizer = optim.Adam(self.global_network.parameters(), lr=lr)
+            #self.global_optimizer = optim.RMSprop(self.global_network.parameters(), lr=lr)
 
         self.global_ep_count = global_ep_count
         self.res_queue = res_queue
@@ -87,19 +89,6 @@ class Worker(mp.Process):
         self.local_network.load_state_dict(self.global_network.state_dict())
         self.transition_buffer = TransitionBuffer(self.num_learn_steps)
 
-    def select_action(self, state, mode='train'):
-        state = torch.tensor([state], dtype=torch.float32).to(self.device)
-        with torch.no_grad():
-            action_prob, _ = self.local_network.forward(state)
-        if mode=='train':
-        #    action = np.random.choice(self.num_actions)
-            #print('Action Prob: ', action_prob, action_prob.sum())
-            action = dist.Categorical(action_prob).sample().item()
-            #print('Action: {}, {}'.format(action_prob, action))
-            return action
-        action = torch.argmax(action_prob).item()
-        #print('Action: {}, {}'.format(actions_prob, action))
-        return action
 
     def learn(self, last_state, done):
         states, actions, rewards, next_states = self.transition_buffer.retrieve(self.device)
@@ -138,7 +127,7 @@ class Worker(mp.Process):
         
         actor_loss = -((log_policy_responsible_outputs * advantage.detach()).view(-1, 1))
 
-        total_loss = critic_loss + actor_loss + 0.01 * entropy
+        total_loss = self.critic_loss_coeff * critic_loss + self.actor_loss_coeff * actor_loss + self.entropy_regularisation_coeff * entropy
         #print('WOOHOO: ', entropy.shape, actor_loss.shape, critic_loss.shape, total_loss.shape)
         total_loss = total_loss.mean()
 
@@ -160,10 +149,12 @@ class Worker(mp.Process):
             #print('Called reset')
             ep_reward = 0
             while True:
-                action = self.select_action(state)
+                #action = self.select_action(state)
+                action = self.local_network.select_action(state, self.device)
                 next_state, reward, done, _ = self.env.step(action)
                 reward = np.clip(reward, a_min=-1, a_max=1)
                 self.transition_buffer.store(state, action, reward, next_state)
+                local_step_cntr += 1
 
                 if done or local_step_cntr - t_start == self.num_learn_steps:
                     t_start = local_step_cntr
@@ -172,7 +163,6 @@ class Worker(mp.Process):
 
                 state = next_state
                 ep_reward += reward
-                local_step_cntr += 1
                 if done: break
 
             with self.global_ep_count.get_lock():
