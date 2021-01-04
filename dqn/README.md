@@ -1,6 +1,10 @@
+## Associated Blog posts:
+1. [DQN](https://medium.com/@saasha/rl-series-2-dqn-e739eb3ab1d1)
+2. [Exploration-Exploitation Dilema](https://medium.com/@saasha/rl-series-3-to-explore-or-not-to-explore-1ff88e4bf5af)
+
 ## Deep Q Networks
 
-This folder contains the Pytorh implementation of the Deep Q Networks, as expressed in [Human-level control through deep reinforcement learning](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf). The code here supports my write up on DQN and the Exploration-Exploitation Dilemma, which you can check out by clicking [here](https://medium.com/@saasha/rl-series-2-dqn-e739eb3ab1d1) and [here](https://medium.com/@saasha/rl-series-3-to-explore-or-not-to-explore-1ff88e4bf5af).
+This folder contains the Pytorh implementation of the Deep Q Networks, as expressed in [Human-level control through deep reinforcement learning](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf). The code here supports my write up on DQN and the Exploration-Exploitation Dilemma as listed above.
 
 ## Usage
 To train the agent with default settings
