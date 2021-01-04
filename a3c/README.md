@@ -1,7 +1,7 @@
 ## Associated Blog post:
 1. [Exploring the A3C algorithm](https://www.saashanair.com/a3c-algorithm-with-cartpole/)
 
-*NOTE:* This folder is still a work in progress.
+**NOTE:** This folder is still a work in progress.
 
 ## TODO
 - [ ] Refactor and proper documentation of scripts
