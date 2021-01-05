@@ -1,7 +1,7 @@
 # rl-series
 
 This repository holds the code associated with my ongoing series of blog posts on Deep RL.
-- [x] DQN [[code](https://github.com/saashanair/rl-series/tree/master/dqn)][[blogpost](https://medium.com/@saasha/rl-series-2-dqn-e739eb3ab1d1)]
+- [x] ~~DQN~~ [[code](https://github.com/saashanair/rl-series/tree/master/dqn)][[blogpost](https://medium.com/@saasha/rl-series-2-dqn-e739eb3ab1d1)]
 - [ ] Double DQN
 - [ ] Dueling DQN
 - [ ] DDPG
