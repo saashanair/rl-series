@@ -14,7 +14,6 @@ def fill_memory(env, td3_agent, epochs_fill_memory, exploration_noise):
 		done = False
 
 		while not done:
-			#action = td3_agent.select_action(state, exploration_noise=exploration_noise)
 			action = env.action_space.sample() # do random action for warmup
 			next_state, reward, done, _ = env.step(action)
 			td3_agent.memory.store([state, action, next_state, reward, done])
@@ -28,7 +27,8 @@ def train(env, td3_agent, epochs_train, epochs_fill_memory, batchsize, explorati
 	fill_memory(env, td3_agent, epochs_fill_memory, exploration_noise)
 	print('Memory filled: ', len(td3_agent.memory))
 
-	for iter_count in range(epochs_train):
+	total_steps = 0
+	for ep_cnt in range(epochs_train):
 		done = False
 		state = env.reset()
 		ep_reward = 0
@@ -39,16 +39,17 @@ def train(env, td3_agent, epochs_train, epochs_fill_memory, batchsize, explorati
 			next_state, reward, done, _ = env.step(action)
 			td3_agent.memory.store([state, action, next_state, reward, done])
 
-			td3_agent.learn(current_iteration=iter_count, batchsize=batchsize)
+			td3_agent.learn(current_iteration=total_steps, batchsize=batchsize)
 
 			state = next_state
 			ep_reward += reward
 			ep_steps += 1
+			total_steps += 1
 
 		reward_history.append(ep_reward)
 		moving_avg_reward = np.mean(reward_history[-100:])
 
-		print('Ep: {} | Ep reward: {} | Moving avg: {}'.format(iter_count, ep_reward, moving_avg_reward))
+		print('Ep: {} | Ep reward: {} | Moving avg: {}'.format(ep_cnt, ep_reward, moving_avg_reward))
 
 		if moving_avg_reward >= best_score:
 			td3_agent.save(path='{}'.format(results_folder), model_name='best')
@@ -79,7 +80,7 @@ if __name__ == '__main__':
 	parser.add_argument('--actor-lr', type=float, default=1e-3)
 	parser.add_argument('--critic-lr', type=float, default=1e-3)
 	parser.add_argument('--results-folder', type=str)
-	parser.add_argument('--env-name', type=str, default='MountainCarContinuous-v0')
+	parser.add_argument('--env-name', type=str, default='LunarLanderContinuous-v2')
 	parser.add_argument('--train', action='store_true')
 	parser.add_argument('--cuda-device', type=str, default='cuda:0')
 	parser.add_argument('--train-seed', type=int, default=12321, help='seed to use while training the model')
