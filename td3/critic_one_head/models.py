@@ -1,13 +1,20 @@
+"""
+Script that describes the details about the Actor and Critic architectures for the TD3 agent
+"""
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F 
 
+
 class Actor(nn.Module):
-    def __init__(self, state_dim, action_dim, min_action, max_action, lr=1e-3):
+    """
+    Class that defines the neural network architecture for the Actor
+    """
+    def __init__(self, state_dim, action_dim, max_action, lr=1e-3):
         super(Actor, self).__init__()
 
-        self.min_action = min_action
         self.max_action = max_action
 
         self.dense1 = nn.Linear(state_dim, 400)
@@ -20,8 +27,6 @@ class Actor(nn.Module):
         x = F.relu(self.dense1(state))
         x = F.relu(self.dense2(x))
         x = torch.tanh(self.dense3(x))
-
-        #scaling_factor = torch.tensor([self.max_action]).to(self.device)
 
         return  self.max_action * x ## assumes action range is symmetric
 
@@ -40,6 +45,9 @@ class Actor(nn.Module):
 
 
 class Critic(nn.Module):
+    """
+    Class that defines the neural network architecture for the Critic
+    """
     def __init__(self, state_dim, action_dim, lr=1e-3):
         super(Critic, self).__init__()
 

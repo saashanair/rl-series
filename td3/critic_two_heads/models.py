@@ -1,9 +1,17 @@
+"""
+Script that describes the details about the Actor and Critic architectures for the TD3 agent.
+The architecture for the Critic is based on the code in the repo provided by the authors of the paper: https://github.com/sfujim/TD3
+"""
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F 
 
 class Actor(nn.Module):
+    """
+    Class that defines the neural network architecture for the Actor
+    """
     def __init__(self, state_dim, action_dim, min_action, max_action, lr=1e-3):
         super(Actor, self).__init__()
 
@@ -40,15 +48,19 @@ class Actor(nn.Module):
 
 
 class Critic(nn.Module):
+    """
+    Class that defines the neural network architecture for the Critic. 
+    Encapsulates two copies of the same network, reperesentative of the two critic outputs Q1 and Q2 described in the paper
+    """
     def __init__(self, state_dim, action_dim, lr=1e-3):
         super(Critic, self).__init__()
 
-        # Q1
+        # Architecture for Q1
         self.dense1 = nn.Linear(state_dim + action_dim, 400)
         self.dense2 = nn.Linear(400, 300)
         self.dense3 = nn.Linear(300, 1)
 
-        # Q2
+        # Architecture for Q2
         self.dense4 = nn.Linear(state_dim + action_dim, 400)
         self.dense5 = nn.Linear(400, 300)
         self.dense6 = nn.Linear(300, 1)
@@ -59,10 +71,12 @@ class Critic(nn.Module):
 
         x = torch.cat([state, action], dim=1)
 
+        # Forward pass for Q1
         q1 = F.relu(self.dense1(x))
         q1 = F.relu(self.dense2(q1))
         q1 = self.dense3(q1)
 
+        # Forward pass for Q2
         q2 = F.relu(self.dense4(x))
         q2 = F.relu(self.dense5(q2))
         q2 = self.dense6(q2)

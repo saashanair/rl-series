@@ -1,3 +1,7 @@
+"""
+Script that contains the details about how the TD3 agent learns, generates actions and save/loads agents
+"""
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -8,8 +12,12 @@ from replay_memory import ReplayMemory
 
 
 class TD3Agent:
-    def __init__(self, state_dim, action_dim, min_action, max_action, device, memory_capacity=10000, discount=0.99, update_freq=2, tau=0.005, policy_noise_std=0.2, policy_noise_clip=0.5, actor_lr=1e-3, critic_lr=1e-3, train_mode=True):
-        
+    """
+    Encapsulated the functioning of the TD3 agent
+    """
+    def __init__(self, state_dim, action_dim, max_action, device, memory_capacity=10000, discount=0.99, update_freq=2, tau=0.005, policy_noise_std=0.2, policy_noise_clip=0.5, actor_lr=1e-3, critic_lr=1e-3, train_mode=True):
+        self.train_mode = train_mode
+
         self.state_dim = state_dim
         self.action_dim = action_dim
         
@@ -17,18 +25,17 @@ class TD3Agent:
         self.discount = discount
         self.update_freq = update_freq
         self.tau = tau
-        self.min_action = min_action
         self.max_action = max_action
         self.policy_noise_clip = policy_noise_clip
         self.policy_noise_std = policy_noise_std
         
         self.memory = ReplayMemory(memory_capacity)
 
-        self.actor = Actor(state_dim, action_dim, min_action, max_action, actor_lr)
+        self.actor = Actor(state_dim, action_dim, max_action, actor_lr)
         self.critic1 = Critic(state_dim, action_dim, critic_lr)
         self.critic2 = Critic(state_dim, action_dim, critic_lr)
 
-        self.target_actor = Actor(state_dim, action_dim, min_action, max_action, actor_lr)
+        self.target_actor = Actor(state_dim, action_dim, max_action, actor_lr)
         self.target_critic1 = Critic(state_dim, action_dim, critic_lr)
         self.target_critic2 = Critic(state_dim, action_dim, critic_lr)
 
@@ -48,15 +55,23 @@ class TD3Agent:
         self.target_critic2.to(self.device)
 
     def select_action(self, state, exploration_noise=0.1):
+        """
+        Function to returns the appropriate action for the given state.
+        During training, it returns adds a zero-mean gaussian noise with std=exploration_noise to the action to encourage exploration.
+        No noise is added to the action decision during testing mode.
+        """
         if not torch.is_tensor(state):
             state = torch.tensor([state], dtype=torch.float32).to(self.device)
             
-        act = self.actor(state).cpu().data.numpy().flatten()
+        act = self.actor(state).cpu().data.numpy().flatten() # performs inference using the actor based on the current state as the input and returns the corresponding np array
 
-        noise = np.random.normal(0, exploration_noise, size=act.shape)
+        if not self.train_mode:
+            exploration_noise = 0.0 # since we do not need noise to be added to the action during testing
+
+        noise = np.random.normal(0.0, exploration_noise, size=act.shape) # generate the zero-mean gaussian noise with standard deviation determined by exploration_noise
 
         noisy_action = act + noise
-        noisy_action = noisy_action.clip(min=-self.max_action, max=self.max_action)
+        noisy_action = noisy_action.clip(min=-self.max_action, max=self.max_action) # to ensure that the noisy action being returned is within the limit of "legal" actions afforded to the agent; assumes action range is symmetric
 
         return noisy_action
 
