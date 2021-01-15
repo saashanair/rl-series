@@ -1,9 +1,5 @@
-## TODO
-- [ ] Add the code for the 'test' function
-- [ ] Documentation of each of the functions and classes
- 
 ## Associated Blog posts:
-1. Theory
+1. [Twin Delayed DDPG (TD3): How does the TD3 algorithm work?](https://www.saashanair.com/td3-theory/)
 2. Code
 3. Additional Experiments
 
