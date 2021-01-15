@@ -12,6 +12,7 @@ class Actor(nn.Module):
     """
     Class that defines the neural network architecture for the Actor
     """
+
     def __init__(self, state_dim, action_dim, min_action, max_action, lr=1e-3):
         super(Actor, self).__init__()
 
@@ -29,21 +30,39 @@ class Actor(nn.Module):
         x = F.relu(self.dense2(x))
         x = torch.tanh(self.dense3(x))
 
-        #scaling_factor = torch.tensor([self.max_action]).to(self.device)
-
         return  self.max_action * x ## assumes action range is symmetric
 
 
     def save_model(self, filename):
         """
         Function to save model parameters
+
+        Parameters
+        ---
+        filename: str
+            Name of the model to save (along with its location)
+
+        Returns
+        ---
+        none
         """
+
         torch.save(self.state_dict(), filename)
 
     def load_model(self, filename):
         """
         Function to load model parameters
+
+        Parameters
+        ---
+        filename: str
+            Name of the model to save (along with its location)
+
+        Returns
+        ---
+        none
         """
+
         self.load_state_dict(torch.load(filename))
 
 
@@ -52,6 +71,7 @@ class Critic(nn.Module):
     Class that defines the neural network architecture for the Critic. 
     Encapsulates two copies of the same network, reperesentative of the two critic outputs Q1 and Q2 described in the paper
     """
+
     def __init__(self, state_dim, action_dim, lr=1e-3):
         super(Critic, self).__init__()
 
@@ -81,16 +101,36 @@ class Critic(nn.Module):
         q2 = F.relu(self.dense5(q2))
         q2 = self.dense6(q2)
 
-        return q1, q2
+        return q1, q2 # return the Q-values of critic1 and critic2
 
     def save_model(self, filename):
         """
         Function to save model parameters
+
+        Parameters
+        ---
+        filename: str
+            Name of the model to save (along with its location)
+
+        Returns
+        ---
+        none
         """
+
         torch.save(self.state_dict(), filename)
 
     def load_model(self, filename):
         """
         Function to load model parameters
+
+        Parameters
+        ---
+        filename: str
+            Name of the model to save (along with its location)
+
+        Returns
+        ---
+        none
         """
+
         self.load_state_dict(torch.load(filename))
