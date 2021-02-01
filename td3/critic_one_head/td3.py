@@ -222,7 +222,7 @@ class TD3Agent:
         self.critic1.save_model('{}/{}_critic1'.format(path, model_name))
         self.critic2.save_model('{}/{}_critic2'.format(path, model_name))
 
-    def load(self, model_name):
+    def load(self, path, model_name):
         """
         Function to load the actor and critic networks
 

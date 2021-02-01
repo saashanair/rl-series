@@ -239,6 +239,7 @@ if __name__ == '__main__':
                                     actor_lr=args.actor_lr, 
                                     critic_lr=args.critic_lr, 
                                     train_mode=args.train)
+            td3_agent.load(path=args.results_folder, model_name='best')
 
             test(env=env,
                 td3_agent=td3_agent,
