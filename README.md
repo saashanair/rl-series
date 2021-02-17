@@ -4,7 +4,7 @@ This repository holds the code associated with my ongoing series of blog posts o
 - [x] ~~DQN~~ [[code](https://github.com/saashanair/rl-series/tree/master/dqn)][[blogpost](https://medium.com/@saasha/rl-series-2-dqn-e739eb3ab1d1)]
 - [ ] Double DQN
 - [ ] Dueling DQN
-- [ ] DDPG
+- [x] ~~DDPG~~ [[code](https://github.com/saashanair/rl-series/tree/master/ddpg)][[blogpost](https://www.saashanair.com/ddpg-theory/)]
 - [x] ~~TD3~~ [[code](https://github.com/saashanair/rl-series/tree/master/td3)] [[blogpost](https://www.saashanair.com/td3-theory/)]
 - [ ] A3C [[code](https://github.com/saashanair/rl-series/tree/master/a3c)][[blogpost](https://www.saashanair.com/a3c-algorithm-with-cartpole/)] [code status: To refactor and document]
 - [ ] TRPO
