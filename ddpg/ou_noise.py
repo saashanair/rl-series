@@ -10,7 +10,7 @@ import numpy as np
 
 class OrnsteinUhlenbeckNoise():
     """
-    Class that OU Process
+    Class for the OU Process used for generating noise to encourage the agent to explore the environment
     """
     def __init__(self, mu, sigma=0.2, theta=0.15, dt=1e-2, x_start=None):
         self.mu = mu # mean value around which the random values are generated
