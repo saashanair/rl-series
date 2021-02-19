@@ -43,6 +43,8 @@ ptyprocess==0.7.0
 pycparser==2.20
 pyglet==1.5.0
 Pygments==2.8.0
+PyOpenGL==3.1.5
+PyOpenGL-accelerate==3.1.5
 pyparsing==2.4.7
 pyrsistent==0.17.3
 python-dateutil==2.8.1
