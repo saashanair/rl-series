@@ -7,7 +7,6 @@ box2d-py==2.3.8
 certifi==2018.8.24
 cffi==1.11.5
 cloudpickle==1.3.0
-custom-envs==0.0.1
 cycler==0.10.0
 Cython==0.29.21
 decorator==4.4.2
