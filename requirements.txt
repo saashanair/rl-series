@@ -10,6 +10,7 @@ cloudpickle==1.6.0
 cycler==0.10.0
 decorator==4.4.2
 defusedxml==0.6.0
+EasyProcess==0.3
 entrypoints==0.3
 future==0.18.2
 gym==0.17.3
@@ -48,6 +49,7 @@ PyOpenGL-accelerate==3.1.5
 pyparsing==2.4.7
 pyrsistent==0.17.3
 python-dateutil==2.8.1
+PyVirtualDisplay==2.0
 pyzmq==20.0.0
 scipy==1.4.1
 Send2Trash==1.5.0
