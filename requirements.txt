@@ -2,7 +2,7 @@ appnope==0.1.0
 atari-py==0.2.6
 backcall==0.2.0
 backports.functools-lru-cache==1.6.1
-bleach==3.2.3
+bleach==3.3.0
 box2d-py==2.3.8
 certifi==2018.8.24
 cffi==1.11.5
