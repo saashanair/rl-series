@@ -1,5 +1,5 @@
 """
-Main script where the DQN agent can be trained and tested. Allows to set various hyperparameter values to be used by the DQN agent.
+Script containing the training and testing loop for DQNAgent
 """
 
 import os
@@ -14,7 +14,25 @@ from dqn_agent import DQNAgent
 import torch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def fill_memory(env, dqn_agent, num_memory_fill_eps):
+
+def fill_memory(env, agent, num_memory_fill_eps):
+    """
+    Function that performs a certain number of episodes of random interactions with the environment to populate the replay buffer
+
+    Parameters
+    ---
+    env: gym.Env
+        Instance of the environment used for training
+    agent: DQNAgent
+        Agent to be trained
+    num_memory_fill_eps: int
+        Number of episodes of interaction to be performed
+
+    Returns
+    ---
+    none
+    """
+
     for _ in range(num_memory_fill_eps):
         done = False
         state = env.reset()
@@ -22,56 +40,85 @@ def fill_memory(env, dqn_agent, num_memory_fill_eps):
         while not done:
             action = env.action_space.sample()
             next_state, reward, done, info = env.step(action)
-            dqn_agent.memory.store(state=state, action=action, next_state=next_state, reward=reward, done=done)
+            agent.memory.store(state=state, 
+                                action=action, 
+                                next_state=next_state, 
+                                reward=reward, 
+                                done=done)
 
 
-def train(env, dqn_agent, results_basepath, num_train_eps=1000, num_memory_fill_eps=10, update_frequency=1000, batchsize=32):
-    fill_memory(env, dqn_agent, num_memory_fill_eps)
-    print('Memory filled. Current capacity: ', len(dqn_agent.memory))
+def train(env, agent, num_train_eps, num_memory_fill_eps, update_frequency, batchsize, results_basepath, render=False):
+    """
+    Function to train the agent
+
+    Parameters
+    ---
+    env: gym.Env
+        Instance of the environment used for training
+    agent: DQNAgent
+        Agent to be trained
+    num_train_eps: int
+        Number of episodes of training to be performed
+    num_memory_fill_eps: int
+        Number of episodes of random interaction to be performed
+    update_frequency: int
+        Number of steps after which the target models must be updated
+    batchsize: int
+        Number of transitions to be sampled from the replay buffer to perform a learning step
+    results_basepath: str
+        Location where models and other result files are saved
+    render: bool
+        Whether to create a pop-up window display the interaction of the agent with the environment
+    
+    Returns
+    ---
+    none
+    """
+
+    fill_memory(env, agent, num_memory_fill_eps)
+    print('Memory filled. Current capacity: ', len(agent.memory))
     
     reward_history = []
     epsilon_history = []
-    loss_history = []
 
     step_cnt = 0
     best_score = -np.inf
 
     for ep_cnt in range(num_train_eps):
+        epsilon_history.append(agent.epsilon)
+
         done = False
         state = env.reset()
 
         ep_score = 0
 
         while not done:
-            #env.render()
-            action = dqn_agent.select_action(state)
-            next_state, reward, done, info = env.step(action)
-            #print('r: ', reward)
+            if render:
+                env.render()
 
-            dqn_agent.memory.store(state=state, action=action, next_state=next_state, reward=reward, done=done)
-            loss = dqn_agent.learn(batchsize)
-            loss_history.append(loss)
+            action = agent.select_action(state)
+            next_state, reward, done, info = env.step(action)
+            agent.memory.store(state=state, action=action, next_state=next_state, reward=reward, done=done)
+
+            agent.learn(batchsize=batchsize)
 
             if step_cnt % update_frequency == 0:
-                dqn_agent.update_target_net()
+                agent.update_target_net()
 
             state = next_state
             ep_score += reward
             step_cnt += 1
 
-        epsilon_history.append(dqn_agent.epsilon)
-        dqn_agent.update_epsilon()
+        agent.update_epsilon()
 
         reward_history.append(ep_score)
-        current_avg_score = np.mean(reward_history[-100:]) # get average of last 100 scores
+        current_avg_score = np.mean(reward_history[-100:]) # moving average of last 100 episodes
 
-        print('Ep: {}, Total Steps: {}, Ep: Score: {}, Avg score: {}; Epsilon: {}'.format(ep_cnt, step_cnt, ep_score, current_avg_score, epsilon_history[-1]))
+        print('Ep: {}, Total Steps: {}, Ep: Score: {}, Avg score: {}; Epsilon: {}'.format(ep_cnt,                           step_cnt, ep_score, current_avg_score, epsilon_history[-1]))
         
         if current_avg_score >= best_score:
-            dqn_agent.save_models('{}/policy_model_best'.format(results_basepath))
+            agent.save_model('{}/dqn_model'.format(results_basepath))
             best_score = current_avg_score
-
-    dqn_agent.save_models('{}/policy_model_final'.format(results_basepath))
 
     with open('{}/train_reward_history.pkl'.format(results_basepath), 'wb') as f:
         pickle.dump(reward_history, f)
@@ -79,19 +126,31 @@ def train(env, dqn_agent, results_basepath, num_train_eps=1000, num_memory_fill_
     with open('{}/train_epsilon_history.pkl'.format(results_basepath), 'wb') as f:
         pickle.dump(epsilon_history, f)
 
-    with open('{}/train_loss_history.pkl'.format(results_basepath), 'wb') as f:
-        pickle.dump(loss_history, f)
 
+def test(env, agent, num_test_eps, seed, results_basepath, render=True):
+    """
+    Function to test the agent
 
-    #with open('{}/train_results.csv'.format(results_basepath), 'w') as train_results_file:
-    #   results_writer = csv.writer(train_results_file, delimiter=',')
-    #   results_writer.writerows((zip(scores, epsilon)))
+    Parameters
+    ---
+    env: gym.Env
+        Instance of the environment used for training
+    agent: DQNAgent
+        Agent to be trained
+    num_test_eps: int
+        Number of episodes of testing to be performed
+    seed: int
+        Value of the seed used for testing
+    results_basepath: str
+        Location where models and other result files are saved
+    render: bool
+        Whether to create a pop-up window display the interaction of the agent with the environment
 
+    Returns
+    ---
+    none
+    """
 
-    
-
-
-def test(env, dqn_agent, num_test_eps, seed_value, results_basepath):
     step_cnt = 0
     reward_history = []
 
@@ -99,21 +158,22 @@ def test(env, dqn_agent, num_test_eps, seed_value, results_basepath):
         score = 0
         done = False
         state = env.reset()
-        while not done: # and step_cnt<1000:
-            env.render()
+        while not done:
+
+            if render:
+                env.render()
+
             action = dqn_agent.select_action(state)
             next_state, reward, done, _ = env.step(action)
+
             score += reward
             state = next_state
             step_cnt += 1
+
         reward_history.append(score)
         print('Ep: {}, Score: {}'.format(ep, score))
 
-    #with open('{}/test_results_seed{}.csv'.format(results_basepath, seed_value), 'w') as f:
-    #   writer = csv.writer(f)
-    #   writer.writerow((scores))
-
-    with open('{}/test_reward_history_{}.pkl'.format(results_basepath, seed_value), 'wb') as f:
+    with open('{}/test_reward_history_{}.pkl'.format(results_basepath, seed), 'wb') as f:
         pickle.dump(reward_history, f)
         
 
@@ -127,6 +187,7 @@ if __name__ ==  '__main__':
     parser.add_argument('--train-seed', type=int, default=12321, help='seed to use while training the model')
     parser.add_argument('--test-seed', type=int, nargs='+', default=[456, 12, 985234, 123, 3202], help='seeds to use while testing the model')
     parser.add_argument('--discount', type=float, default=0.99, help='discounting value to determine how far-sighted the agent should be')
+    parser.add_argument('--lr', type=float, default=1e-3, help='learning rate')
     parser.add_argument('--eps-max', type=float, default=1.0, help='max value for epsilon')
     parser.add_argument('--eps-min', type=float, default=0.01, help='min value for epsilon')
     parser.add_argument('--eps-decay', type=float, default=0.99, help='amount by which to decay the epsilon value for annealing strategy')
@@ -135,6 +196,7 @@ if __name__ ==  '__main__':
     parser.add_argument('--results-folder', type=str, help='folder where the models and results of the current run must by stored')
     parser.add_argument('--env-name', type=str, default='MountainCar-v0', help='environment in which to train the agent')
     parser.add_argument('--train', action='store_true', help='train the agent')
+    parser.add_argument('--render', action='store_true', help='render the interaction')
     args = parser.parse_args()
 
     if args.train:
@@ -159,29 +221,29 @@ if __name__ ==  '__main__':
                                 eps_max=args.eps_max, 
                                 eps_min=args.eps_min, 
                                 eps_decay=args.eps_decay,
-                                memory_capacity=args.memory_capacity)
+                                memory_capacity=args.memory_capacity,
+                                lr=args.lr)
 
         train(env=env, 
-                dqn_agent=dqn_agent, 
+                agent=dqn_agent, 
                 results_basepath=args.results_folder, 
                 num_train_eps=args.num_train_eps, 
-                max_memory_fill_eps=args.num_memory_fill_eps, 
+                num_memory_fill_eps=args.num_memory_fill_eps, 
                 update_frequency=args.update_frequency,
                 batchsize=args.batchsize)
 
         env.close()
     
     else:
-        cntr = 1
-        for seed_value in args.test_seed:
-            print("Testing {}/{}, seed = {}".format(cntr, len(args.test_seed), seed_value))
-            os.environ['PYTHONHASHSEED']=str(seed_value)
-            np.random.seed(seed_value)
-            torch.manual_seed(seed_value)
+        for idx, seed in enumerate(args.test_seed):
+            print("Testing {}/{}, seed = {}".format(idx+1, len(args.test_seed), seed))
+            os.environ['PYTHONHASHSEED']=str(seed)
+            np.random.seed(seed)
+            torch.manual_seed(seed)
 
             env = gym.make(args.env_name)
-            env.seed(seed_value)
-            env.action_space.np_random.seed(seed_value)
+            env.seed(seed)
+            env.action_space.np_random.seed(seed)
 
             dqn_agent = DQNAgent(device, 
                                 env.observation_space.shape[0], 
@@ -190,12 +252,11 @@ if __name__ ==  '__main__':
                                 eps_max=0.0, # epsilon values should be zero to ensure no exploration in testing mode
                                 eps_min=0.0, 
                                 eps_decay=0.0)
-            dqn_agent.load_models('{}/policy_model_best'.format(args.results_folder))
+            dqn_agent.load_model('{}/dqn_model'.format(args.results_folder))
 
-            test(env, dqn_agent, args.num_test_eps, seed_value, args.results_folder)
+            test(env=env, agent=dqn_agent, num_test_eps=args.num_test_eps, seed=seed, results_basepath=args.results_folder)
 
             env.close()
-            cntr += 1
 
 
 
