@@ -222,7 +222,8 @@ if __name__ ==  '__main__':
                                 eps_min=args.eps_min, 
                                 eps_decay=args.eps_decay,
                                 memory_capacity=args.memory_capacity,
-                                lr=args.lr)
+                                lr=args.lr,
+                                train_mode=False)
 
         train(env=env, 
                 agent=dqn_agent, 
@@ -251,7 +252,8 @@ if __name__ ==  '__main__':
                                 discount=args.discount, 
                                 eps_max=0.0, # epsilon values should be zero to ensure no exploration in testing mode
                                 eps_min=0.0, 
-                                eps_decay=0.0)
+                                eps_decay=0.0,
+                                train_mode=False)
             dqn_agent.load_model('{}/dqn_model'.format(args.results_folder))
 
             test(env=env, agent=dqn_agent, num_test_eps=args.num_test_eps, seed=seed, results_basepath=args.results_folder)
