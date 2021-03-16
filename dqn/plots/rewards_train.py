@@ -11,7 +11,8 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 env = 'LunarLander'
-path = '../pretrained/LunarLander-v2_epsmax1.0_epsmin0.01_epsdec0.995_batchsize64/'
+#path = '../pretrained/LunarLander-v2_epsmax1.0_epsmin0.01_epsdec0.995_batchsize64/'
+path = '../results/LunarLander-v2-epsmax1.0_epsmin0.01_epsdec0.995_batchsize64_updfreq1000_memcap10000'
 baseline_score = 200
 
 #env = 'MountainCar'
@@ -63,6 +64,6 @@ plt.xlabel('Episodes')
 plt.ylabel('Reward')
 plt.tight_layout()
 
-plt.savefig('{}_rewards_train.png'.format(env))
+plt.savefig('{}_rewards_train_dqncodepost.png'.format(env))
 #plt.show()
 

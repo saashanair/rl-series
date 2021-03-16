@@ -2,8 +2,6 @@
 Script that contains the details about the experience replay buffer used in DQN to ensure training stability
 """
 
-## initial thought was to use deque, but with a large replay memory it turns out to be very inefficient -- see https://stackoverflow.com/questions/40181284/how-to-get-random-sample-from-deque-in-python-3
-
 import random
 import numpy as np
 

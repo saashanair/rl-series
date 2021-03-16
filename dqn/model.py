@@ -13,9 +13,9 @@ class DQNNet(nn.Module):
     """
     def __init__(self, input_size, output_size, lr=1e-3):
         super(DQNNet, self).__init__()
-        self.dense1 = nn.Linear(input_size, 512)
-        self.dense2 = nn.Linear(512, 512)
-        self.dense3 = nn.Linear(512, output_size)
+        self.dense1 = nn.Linear(input_size, 400)
+        self.dense2 = nn.Linear(400, 300)
+        self.dense3 = nn.Linear(300, output_size)
 
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
 
