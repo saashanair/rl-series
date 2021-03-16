@@ -15,7 +15,7 @@ import torch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def fill_memory(env, agent, num_memory_fill_eps):
+def fill_memory(env, dqn_agent, num_memory_fill_eps):
     """
     Function that performs a certain number of episodes of random interactions with the environment to populate the replay buffer
 
@@ -23,7 +23,7 @@ def fill_memory(env, agent, num_memory_fill_eps):
     ---
     env: gym.Env
         Instance of the environment used for training
-    agent: DQNAgent
+    dqn_agent: DQNAgent
         Agent to be trained
     num_memory_fill_eps: int
         Number of episodes of interaction to be performed
@@ -40,14 +40,14 @@ def fill_memory(env, agent, num_memory_fill_eps):
         while not done:
             action = env.action_space.sample()
             next_state, reward, done, info = env.step(action)
-            agent.memory.store(state=state, 
+            dqn_agent.memory.store(state=state, 
                                 action=action, 
                                 next_state=next_state, 
                                 reward=reward, 
                                 done=done)
 
 
-def train(env, agent, num_train_eps, num_memory_fill_eps, update_frequency, batchsize, results_basepath, render=False):
+def train(env, dqn_agent, num_train_eps, num_memory_fill_eps, update_frequency, batchsize, results_basepath, render=False):
     """
     Function to train the agent
 
@@ -55,7 +55,7 @@ def train(env, agent, num_train_eps, num_memory_fill_eps, update_frequency, batc
     ---
     env: gym.Env
         Instance of the environment used for training
-    agent: DQNAgent
+    dqn_agent: DQNAgent
         Agent to be trained
     num_train_eps: int
         Number of episodes of training to be performed
@@ -75,8 +75,8 @@ def train(env, agent, num_train_eps, num_memory_fill_eps, update_frequency, batc
     none
     """
 
-    fill_memory(env, agent, num_memory_fill_eps)
-    print('Memory filled. Current capacity: ', len(agent.memory))
+    fill_memory(env, dqn_agent, num_memory_fill_eps)
+    print('Memory filled. Current capacity: ', len(dqn_agent.memory))
     
     reward_history = []
     epsilon_history = []
@@ -85,7 +85,7 @@ def train(env, agent, num_train_eps, num_memory_fill_eps, update_frequency, batc
     best_score = -np.inf
 
     for ep_cnt in range(num_train_eps):
-        epsilon_history.append(agent.epsilon)
+        epsilon_history.append(dqn_agent.epsilon)
 
         done = False
         state = env.reset()
@@ -96,20 +96,20 @@ def train(env, agent, num_train_eps, num_memory_fill_eps, update_frequency, batc
             if render:
                 env.render()
 
-            action = agent.select_action(state)
+            action = dqn_agent.select_action(state)
             next_state, reward, done, info = env.step(action)
-            agent.memory.store(state=state, action=action, next_state=next_state, reward=reward, done=done)
+            dqn_agent.memory.store(state=state, action=action, next_state=next_state, reward=reward, done=done)
 
-            agent.learn(batchsize=batchsize)
+            dqn_agent.learn(batchsize=batchsize)
 
             if step_cnt % update_frequency == 0:
-                agent.update_target_net()
+                dqn_agent.update_target_net()
 
             state = next_state
             ep_score += reward
             step_cnt += 1
 
-        agent.update_epsilon()
+        dqn_agent.update_epsilon()
 
         reward_history.append(ep_score)
         current_avg_score = np.mean(reward_history[-100:]) # moving average of last 100 episodes
@@ -117,7 +117,7 @@ def train(env, agent, num_train_eps, num_memory_fill_eps, update_frequency, batc
         print('Ep: {}, Total Steps: {}, Ep: Score: {}, Avg score: {}; Epsilon: {}'.format(ep_cnt,                           step_cnt, ep_score, current_avg_score, epsilon_history[-1]))
         
         if current_avg_score >= best_score:
-            agent.save_model('{}/dqn_model'.format(results_basepath))
+            dqn_agent.save_model('{}/dqn_model'.format(results_basepath))
             best_score = current_avg_score
 
     with open('{}/train_reward_history.pkl'.format(results_basepath), 'wb') as f:
@@ -127,7 +127,7 @@ def train(env, agent, num_train_eps, num_memory_fill_eps, update_frequency, batc
         pickle.dump(epsilon_history, f)
 
 
-def test(env, agent, num_test_eps, seed, results_basepath, render=True):
+def test(env, dqn_agent, num_test_eps, seed, results_basepath, render=True):
     """
     Function to test the agent
 
@@ -135,7 +135,7 @@ def test(env, agent, num_test_eps, seed, results_basepath, render=True):
     ---
     env: gym.Env
         Instance of the environment used for training
-    agent: DQNAgent
+    dqn_agent: DQNAgent
         Agent to be trained
     num_test_eps: int
         Number of episodes of testing to be performed
@@ -180,9 +180,9 @@ def test(env, agent, num_test_eps, seed, results_basepath, render=True):
 if __name__ ==  '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--num-train-eps', type=int, default=1000, help='specify the max episodes to train for (counts even the period of memory initialisation)')
+    parser.add_argument('--num-train-eps', type=int, default=2000, help='specify the max episodes to train for (counts even the period of memory initialisation)')
     parser.add_argument('--num-test-eps', type=int, default=100, help='specify the max episodes to test for')
-    parser.add_argument('--num-memory-fill-eps', type=int, default=10, help='number of timesteps after which learning should start (used to initialise the memory)')
+    parser.add_argument('--num-memory-fill-eps', type=int, default=20, help='number of timesteps after which learning should start (used to initialise the memory)')
     parser.add_argument('--update-frequency', type=int, default=1000, help='how frequently should the target network by updated')
     parser.add_argument('--train-seed', type=int, default=12321, help='seed to use while training the model')
     parser.add_argument('--test-seed', type=int, nargs='+', default=[456, 12, 985234, 123, 3202], help='seeds to use while testing the model')
@@ -190,11 +190,11 @@ if __name__ ==  '__main__':
     parser.add_argument('--lr', type=float, default=1e-3, help='learning rate')
     parser.add_argument('--eps-max', type=float, default=1.0, help='max value for epsilon')
     parser.add_argument('--eps-min', type=float, default=0.01, help='min value for epsilon')
-    parser.add_argument('--eps-decay', type=float, default=0.99, help='amount by which to decay the epsilon value for annealing strategy')
+    parser.add_argument('--eps-decay', type=float, default=0.995, help='amount by which to decay the epsilon value for annealing strategy')
     parser.add_argument('--batchsize', type=int, default=64, help='number of samples to draw from memory for learning')
-    parser.add_argument('--memory-capacity', type=int, default=5000, help='define the capacity of the replay memory')
+    parser.add_argument('--memory-capacity', type=int, default=10000, help='define the capacity of the replay memory')
     parser.add_argument('--results-folder', type=str, help='folder where the models and results of the current run must by stored')
-    parser.add_argument('--env-name', type=str, default='MountainCar-v0', help='environment in which to train the agent')
+    parser.add_argument('--env-name', type=str, default='LunarLander-v2', help='environment in which to train the agent')
     parser.add_argument('--train', action='store_true', help='train the agent')
     parser.add_argument('--render', action='store_true', help='render the interaction')
     args = parser.parse_args()
@@ -210,7 +210,7 @@ if __name__ ==  '__main__':
         env.action_space.np_random.seed(args.train_seed)
 
         if args.results_folder is None:
-            args.results_folder = "results/{}_epsmax{}_epsmin{}_epsdec{}_batchsize{}".format(args.env_name, args.eps_max, args.eps_min, args.eps_decay, args.batchsize)
+            args.results_folder = "results/{}_epsmax{}_epsmin{}_epsdec{}_batchsize{}_memcap{}_updfreq{}".format(args.env_name, args.eps_max, args.eps_min, args.eps_decay, args.batchsize, args.memory_capacity, args.update_frequency)
 
         os.makedirs(args.results_folder, exist_ok=True)
 
@@ -223,10 +223,10 @@ if __name__ ==  '__main__':
                                 eps_decay=args.eps_decay,
                                 memory_capacity=args.memory_capacity,
                                 lr=args.lr,
-                                train_mode=False)
+                                train_mode=True)
 
         train(env=env, 
-                agent=dqn_agent, 
+                dqn_agent=dqn_agent, 
                 results_basepath=args.results_folder, 
                 num_train_eps=args.num_train_eps, 
                 num_memory_fill_eps=args.num_memory_fill_eps, 
@@ -256,7 +256,7 @@ if __name__ ==  '__main__':
                                 train_mode=False)
             dqn_agent.load_model('{}/dqn_model'.format(args.results_folder))
 
-            test(env=env, agent=dqn_agent, num_test_eps=args.num_test_eps, seed=seed, results_basepath=args.results_folder)
+            test(env=env, dqn_agent=dqn_agent, num_test_eps=args.num_test_eps, seed=seed, results_basepath=args.results_folder, render=args.render)
 
             env.close()
 
