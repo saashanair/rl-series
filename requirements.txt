@@ -5,7 +5,7 @@ backcall==0.2.0
 bleach==3.3.0
 bokeh==1.4.0
 box2d-py==2.3.8
-certifi==2020.6.20
+certifi==2022.12.7
 cffi==1.14.5
 cloudpickle==1.6.0
 cycler==0.10.0
